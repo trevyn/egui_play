@@ -1,8 +1,14 @@
 use eframe::{egui, epi};
 
+enum InnerElement {
+ Label {},
+ Button {},
+}
+
 struct Element {
- label: String,
+ name: String,
  fontsize: f32,
+ el: InnerElement,
 }
 
 #[derive(Default)]
@@ -13,7 +19,7 @@ pub struct TemplateApp {
 
 impl epi::App for TemplateApp {
  fn name(&self) -> &str {
-  "eframe template"
+  "egui_play"
  }
 
  /// Called once before the first frame.
@@ -31,13 +37,7 @@ impl epi::App for TemplateApp {
  fn update(&mut self, ctx: &egui::Context, frame: &epi::Frame) {
   let Self { elements, selected_id } = self;
 
-  // Examples of how to create different panels and windows.
-  // Pick whichever suits you.
-  // Tip: a good default choice is to just keep the `CentralPanel`.
-  // For inspiration and more examples, go to https://emilk.github.io/egui
-
   egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
-   // The top panel is often a good place for a menu bar:
    egui::menu::bar(ui, |ui| {
     ui.menu_button("File", |ui| {
      if ui.button("Quit").clicked() {
@@ -48,13 +48,28 @@ impl epi::App for TemplateApp {
   });
 
   egui::SidePanel::left("side_panel").show(ctx, |ui| {
-   if ui.button("New Label").clicked() {
-    elements.push(Element { label: "New Label".to_string(), fontsize: 20.0 });
-   }
+   ui.menu_button("New Element", |ui| {
+    if ui.button("Label").clicked() {
+     elements.push(Element {
+      name: "New Label".to_string(),
+      fontsize: 25.0,
+      el: InnerElement::Label {},
+     });
+     ui.close_menu();
+    }
+    if ui.button("Button").clicked() {
+     elements.push(Element {
+      name: "New Button".to_string(),
+      fontsize: 15.0,
+      el: InnerElement::Button {},
+     });
+     ui.close_menu();
+    }
+   });
 
    for (i, el) in elements.iter().enumerate() {
     let mut checked = *selected_id == i;
-    ui.checkbox(&mut checked, el.label.clone());
+    ui.checkbox(&mut checked, el.name.clone());
     if checked {
      *selected_id = i;
     }
@@ -65,10 +80,10 @@ impl epi::App for TemplateApp {
    ui.heading("Inspector");
 
    if !elements.is_empty() {
-    let Element { label, fontsize } = &mut elements[*selected_id];
+    let Element { name, fontsize, .. } = &mut elements[*selected_id];
 
     ui.label("Title");
-    ui.text_edit_singleline(label);
+    ui.text_edit_singleline(name);
 
     ui.label("Font Size");
     ui.add(egui::Slider::new(fontsize, 10.0..=40.0));
@@ -76,16 +91,29 @@ impl epi::App for TemplateApp {
   });
 
   egui::CentralPanel::default().show(ctx, |ui| {
-   // The central panel the region left after adding TopPanel's and SidePanel's
    for (_i, el) in elements.iter().enumerate() {
-    if (ui.add(
-     egui::Label::new(
-      egui::RichText::new(el.label.clone()).font(egui::FontId::proportional(el.fontsize)),
-     )
-     .sense(egui::Sense::click()),
-    ))
-    .clicked()
-    {};
+    match el {
+     Element { name, fontsize, el: InnerElement::Label {} } => {
+      if (ui.add(
+       egui::Label::new(
+        egui::RichText::new(el.name.clone()).font(egui::FontId::proportional(el.fontsize)),
+       )
+       .sense(egui::Sense::click()),
+      ))
+      .clicked()
+      {};
+     }
+     Element { name, fontsize, el: InnerElement::Button {} } => {
+      if (ui.add(
+       egui::Button::new(
+        egui::RichText::new(el.name.clone()).font(egui::FontId::proportional(el.fontsize)),
+       )
+       .sense(egui::Sense::click()),
+      ))
+      .clicked()
+      {};
+     }
+    }
    }
 
    ui.with_layout(egui::Layout::bottom_up(egui::Align::RIGHT), |ui| {
@@ -94,14 +122,39 @@ impl epi::App for TemplateApp {
     });
    });
   });
-
-  if false {
-   egui::Window::new("Window").show(ctx, |ui| {
-    ui.label("Windows can be moved by dragging them.");
-    ui.label("They are automatically sized based on contents.");
-    ui.label("You can turn on resizing and scrolling if you like.");
-    ui.label("You would normally chose either panels OR windows.");
-   });
-  }
  }
+}
+
+fn nested_menus(ui: &mut egui::Ui) {
+ if ui.button("Label").clicked() {}
+ if ui.button("Button").clicked() {}
+
+ //  ui.menu_button("SubMenu", |ui| {
+ //   ui.menu_button("SubMenu", |ui| {
+ //    if ui.button("Open...").clicked() {
+ //     ui.close_menu();
+ //    }
+ //    let _ = ui.button("Item");
+ //   });
+ //   ui.menu_button("SubMenu", |ui| {
+ //    if ui.button("Open...").clicked() {
+ //     ui.close_menu();
+ //    }
+ //    let _ = ui.button("Item");
+ //   });
+ //   let _ = ui.button("Item");
+ //   if ui.button("Open...").clicked() {
+ //    ui.close_menu();
+ //   }
+ //  });
+ //  ui.menu_button("SubMenu", |ui| {
+ //   let _ = ui.button("Item1");
+ //   let _ = ui.button("Item2");
+ //   let _ = ui.button("Item3");
+ //   let _ = ui.button("Item4");
+ //   if ui.button("Open...").clicked() {
+ //    ui.close_menu();
+ //   }
+ //  });
+ //  let _ = ui.button("Very long text for this item");
 }

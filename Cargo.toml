@@ -16,7 +16,7 @@ path = "src/main.rs"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-eframe = "0.17.0" # Gives us egui, epi and web+native backends
+eframe = {version = "0.17.0", features = ["persistence"]}# Gives us egui, epi and web+native backends
 
 [features]
 default = []
