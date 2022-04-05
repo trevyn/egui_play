@@ -1,25 +1,17 @@
 use eframe::{egui, epi};
 
+struct Element {
+ label: String,
+ fontsize: f32,
+}
+
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[cfg_attr(feature = "persistence", derive(serde::Deserialize, serde::Serialize))]
 #[cfg_attr(feature = "persistence", serde(default))] // if we add new fields, give them default values when deserializing old state
+#[derive(Default)]
 pub struct TemplateApp {
- // Example stuff:
- label: String,
-
- // this how you opt-out of serialization of a member
- #[cfg_attr(feature = "persistence", serde(skip))]
- value: f32,
-}
-
-impl Default for TemplateApp {
- fn default() -> Self {
-  Self {
-   // Example stuff:
-   label: "Hello World!".to_owned(),
-   value: 2.7,
-  }
- }
+ elements: Vec<Element>,
+ selected_id: usize,
 }
 
 impl epi::App for TemplateApp {
@@ -30,10 +22,11 @@ impl epi::App for TemplateApp {
  /// Called once before the first frame.
  fn setup(
   &mut self,
-  _ctx: &egui::Context,
+  ctx: &egui::Context,
   _frame: &epi::Frame,
   _storage: Option<&dyn epi::Storage>,
  ) {
+  ctx.set_pixels_per_point(3.0);
   // Load previous app state (if any).
   // Note that you must enable the `persistence` feature for this to work.
   #[cfg(feature = "persistence")]
@@ -52,7 +45,7 @@ impl epi::App for TemplateApp {
  /// Called each time the UI needs repainting, which may be many times per second.
  /// Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
  fn update(&mut self, ctx: &egui::Context, frame: &epi::Frame) {
-  let Self { label, value } = self;
+  let Self { elements, selected_id } = self;
 
   // Examples of how to create different panels and windows.
   // Pick whichever suits you.
@@ -71,39 +64,51 @@ impl epi::App for TemplateApp {
   });
 
   egui::SidePanel::left("side_panel").show(ctx, |ui| {
-   ui.heading("Side Panel");
-
-   ui.horizontal(|ui| {
-    ui.label("Write something: ");
-    ui.text_edit_singleline(label);
-   });
-
-   ui.add(egui::Slider::new(value, 0.0..=10.0).text("value"));
-   if ui.button("Increment").clicked() {
-    *value += 1.0;
+   if ui.button("New Label").clicked() {
+    elements.push(Element { label: "New Label".to_string(), fontsize: 20.0 });
    }
 
-   ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
-    ui.horizontal(|ui| {
-     ui.spacing_mut().item_spacing.x = 0.0;
-     ui.label("powered by ");
-     ui.hyperlink_to("egui", "https://github.com/emilk/egui");
-     ui.label(" and ");
-     ui.hyperlink_to("eframe", "https://github.com/emilk/egui/tree/master/eframe");
-    });
-   });
+   for (i, el) in elements.iter().enumerate() {
+    let mut checked = *selected_id == i;
+    ui.checkbox(&mut checked, el.label.clone());
+    if checked {
+     *selected_id = i;
+    }
+   }
+  });
+
+  egui::SidePanel::right("inspector").show(ctx, |ui| {
+   ui.heading("Inspector");
+
+   if !elements.is_empty() {
+    let Element { label, fontsize } = &mut elements[*selected_id];
+
+    ui.label("Title");
+    ui.text_edit_singleline(label);
+
+    ui.label("Font Size");
+    ui.add(egui::Slider::new(fontsize, 10.0..=40.0));
+   }
   });
 
   egui::CentralPanel::default().show(ctx, |ui| {
    // The central panel the region left after adding TopPanel's and SidePanel's
+   for (_i, el) in elements.iter().enumerate() {
+    if (ui.add(
+     egui::Label::new(
+      egui::RichText::new(el.label.clone()).font(egui::FontId::proportional(el.fontsize)),
+     )
+     .sense(egui::Sense::click()),
+    ))
+    .clicked()
+    {};
+   }
 
-   ui.heading("eframe template");
-   ui.hyperlink("https://github.com/emilk/eframe_template");
-   ui.add(egui::github_link_file!(
-    "https://github.com/emilk/eframe_template/blob/master/",
-    "Source code."
-   ));
-   egui::warn_if_debug_build(ui);
+   ui.with_layout(egui::Layout::bottom_up(egui::Align::RIGHT), |ui| {
+    ui.horizontal(|ui| {
+     egui::warn_if_debug_build(ui);
+    });
+   });
   });
 
   if false {
